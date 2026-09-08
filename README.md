@@ -6,7 +6,7 @@ Typed Ukrainian words while the English layout was active — got `ghbdtn` inste
 
 ## Status
 
-**Concept stage.** See [docs/concept.md](docs/concept.md) for the product idea. Implementation has not started.
+**Working prototype (increment 1 complete).** See [docs/concept.md](docs/concept.md) for the product idea and [docs/superpowers/specs/2026-09-08-keyboard-switcher-design.md](docs/superpowers/specs/2026-09-08-keyboard-switcher-design.md) for the increment 1 design.
 
 ## Planned features
 
