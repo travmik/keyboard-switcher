@@ -20,12 +20,15 @@ Typed Ukrainian words while the English layout was active — got `ghbdtn` inste
 Swift 5.9, macOS 14+ (arm64), SwiftPM:
 
 ```bash
-swift build
-swift test
-swift run
+swift build          # debug build
+swift test           # unit tests
+swift run            # run from CLI for development
+./scripts/make-app.sh  # assemble build/KeyboardSwitcher.app for daily use
 ```
 
-The app will require **Accessibility** permission to read and replace selected text.
+The app requires **Accessibility** permission (System Settings → Privacy & Security →
+Accessibility) to read and replace selected text. Grant it to `KeyboardSwitcher.app`
+(or to your terminal app when running via `swift run`).
 
 ## License
 
