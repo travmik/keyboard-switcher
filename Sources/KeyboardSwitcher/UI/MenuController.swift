@@ -28,13 +28,14 @@ final class MenuController {
                 backing: .buffered,
                 defer: false
             )
+            window.isReleasedWhenClosed = false
             window.title = "Keyboard Switcher — Settings"
-            window.contentView = NSHostingView(
-                rootView: SettingsView(store: settingsStore, inputSource: inputSourceService)
-            )
             window.center()
             settingsWindow = window
         }
+        window.contentView = NSHostingView(
+            rootView: SettingsView(store: settingsStore, inputSource: inputSourceService)
+        )
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
     }
@@ -50,6 +51,7 @@ final class MenuController {
                 backing: .buffered,
                 defer: false
             )
+            window.isReleasedWhenClosed = false
             window.title = "About Keyboard Switcher"
             window.contentView = NSHostingView(rootView: AboutView())
             window.center()
