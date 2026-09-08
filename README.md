@@ -8,7 +8,7 @@ Typed Ukrainian words while the English layout was active — got `ghbdtn` inste
 
 **Working prototype (increment 1 complete).** See [docs/concept.md](docs/concept.md) for the product idea and [docs/superpowers/specs/2026-09-08-keyboard-switcher-design.md](docs/superpowers/specs/2026-09-08-keyboard-switcher-design.md) for the increment 1 design.
 
-## Planned features
+## Features
 
 - Global hotkey: switch layout + "translate" the selected text between layouts
 - Menu bar item with Settings / About / Exit

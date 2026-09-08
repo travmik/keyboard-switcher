@@ -45,11 +45,19 @@ public final class TextSelectionService: TextSelectionServicing {
         // Give the pasteboard a moment before synthesizing ⌘V.
         usleep(50_000)
         guard let down = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(kVK_ANSI_V), keyDown: true) else {
+            NSPasteboard.general.clearContents()
+            if let saved {
+                NSPasteboard.general.setString(saved, forType: .string)
+            }
             return false
         }
         down.flags = .maskCommand
         down.post(tap: .cgSessionEventTap)
         guard let up = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(kVK_ANSI_V), keyDown: false) else {
+            NSPasteboard.general.clearContents()
+            if let saved {
+                NSPasteboard.general.setString(saved, forType: .string)
+            }
             return false
         }
         up.post(tap: .cgSessionEventTap)

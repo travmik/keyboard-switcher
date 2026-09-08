@@ -16,7 +16,7 @@ The user types text while the wrong input source is active (e.g., Ukrainian word
 ## Product requirements (from concept)
 
 - Menu bar app (`LSUIElement`, no Dock icon) with a keyboard-style icon, chosen during UI work
-- Menu bar click menu: **Settings / About / Exit**
+- Menu bar click menu: **Settings / About / Quit** (concept calls the last item "Exit")
 - Settings popup: configure languages manually **or** take them from system input sources
 - With more than two input sources enabled, the hotkey cycles to the next language and translates the selection to it
 
@@ -24,7 +24,7 @@ The user types text while the wrong input source is active (e.g., Ukrainian word
 
 - Swift 5.9, SwiftUI + AppKit, target macOS 14+ (arm64)
 - SwiftPM as the build backbone (`swift build` / `swift test` from CLI)
-- Packaging into a signed `.app` bundle happens later via a bundle script; do not add an Xcode project unless asked
+- Packaging into an `.app` bundle: `scripts/make-app.sh` assembles build/KeyboardSwitcher.app (LSUIElement, ad-hoc codesigned); do not add an Xcode project unless asked
 - No third-party dependencies initially; system frameworks only:
 
 | Concern | API |
