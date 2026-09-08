@@ -1,0 +1,18 @@
+# Swift / SwiftPM
+.build/
+.swiftpm/
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+
+# macOS
+.DS_Store
+
+# Claude Code local settings (personal)
+.claude/settings.local.json
+
+# App bundles produced locally
+*.app
+*.dmg
