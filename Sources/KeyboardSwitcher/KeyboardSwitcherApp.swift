@@ -1,4 +1,5 @@
 import SwiftUI
+import ApplicationServices
 import KeyboardSwitcherCore
 
 @main
@@ -26,9 +27,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         let inputSource = InputSourceService()
-        let textSelection = TextSelectionService()
-        let keymaps = KeymapProvider()
         let settings = SettingsStore()
+        let textSelection = TextSelectionService(shouldRestoreClipboard: {
+            settings.load().restoreClipboardAfterFix
+        })
+        let keymaps = KeymapProvider()
         orchestrator = Orchestrator(
             inputSource: inputSource,
             textSelection: textSelection,
@@ -40,10 +43,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hotkey = HotkeyManager { [weak orchestrator] in
             orchestrator?.switchAndTranslate()
         }
-        if !hotkey.install() {
+        let installed = hotkey.install()
+        if !installed {
             logError("failed to register hotkey option-command-K")
         }
         hotkeyManager = hotkey
+        debugLog("startup: trusted=\(AXIsProcessTrusted()) installed=\(installed)") // TEMPORARY DEBUG
     }
 
     func showSettings() { menuController.showSettings() }

@@ -33,4 +33,23 @@ final class SettingsStoreTests: XCTestCase {
         let store = SettingsStore(defaults: defaults)
         XCTAssertEqual(store.load(), AppSettings(enabledSourceIDs: []))
     }
+
+    func test_legacySettingsWithoutRestoreFlag_decodeWithDefaults() {
+        // Settings written before restoreClipboardAfterFix existed must still decode,
+        // keeping the saved languages and defaulting the flag to false.
+        let legacyJSON = #"{"enabledSourceIDs":["com.apple.keylayout.US"]}"#
+        defaults.set(Data(legacyJSON.utf8), forKey: "AppSettings")
+        let store = SettingsStore(defaults: defaults)
+        XCTAssertEqual(
+            store.load(),
+            AppSettings(enabledSourceIDs: ["com.apple.keylayout.US"], restoreClipboardAfterFix: false)
+        )
+    }
+
+    func test_restoreClipboardFlag_roundTrip() {
+        let store = SettingsStore(defaults: defaults)
+        let settings = AppSettings(enabledSourceIDs: ["a"], restoreClipboardAfterFix: true)
+        store.save(settings)
+        XCTAssertEqual(store.load(), settings)
+    }
 }

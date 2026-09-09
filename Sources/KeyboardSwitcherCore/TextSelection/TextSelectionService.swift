@@ -6,21 +6,36 @@ import Carbon.HIToolbox
 /// Falls back to a clipboard paste when the app rejects the AX write (spec §3.4).
 public final class TextSelectionService: TextSelectionServicing {
 
-    public init() {}
+    private let shouldRestoreClipboard: () -> Bool
+
+    /// - Parameter shouldRestoreClipboard: consulted after every paste; when false
+    ///   (the default) the clipboard keeps the translated text instead of the
+    ///   pre-paste content.
+    public init(shouldRestoreClipboard: @escaping () -> Bool = { false }) {
+        self.shouldRestoreClipboard = shouldRestoreClipboard
+    }
 
     public func selectedText() -> String? {
-        guard let element = focusedElement() else { return nil }
+        guard let element = focusedElement() else {
+            debugLog("AX: no focused element") // TEMPORARY DEBUG
+            return nil
+        }
         var value: CFTypeRef?
         let status = AXUIElementCopyAttributeValue(element, kAXSelectedTextAttribute as CFString, &value)
-        guard status == .success else { return nil }
+        guard status == .success else {
+            debugLog("AX read failed: \(status.rawValue)") // TEMPORARY DEBUG
+            return nil
+        }
         return value as? String
     }
 
     /// Read fallback for apps that don't expose the selection via AX (Electron/Chromium):
-    /// save clipboard → synthetic ⌘C → poll the pasteboard → return the copied selection (spec §3.4).
+    /// synthetic ⌘C → poll the pasteboard → return the copied selection (spec §3.4).
+    /// On success the pasteboard intentionally holds the selection; the replace path
+    /// (AX write, or the ⌘V fallback) proceeds from there. On failure the pasteboard
+    /// was never touched.
     public func selectedTextViaClipboard() -> String? {
         let pasteboard = NSPasteboard.general
-        let saved = pasteboard.string(forType: .string)
         let changeCountBefore = pasteboard.changeCount
 
         guard let down = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(kVK_ANSI_C), keyDown: true),
@@ -40,9 +55,10 @@ public final class TextSelectionService: TextSelectionServicing {
         }
         guard pasteboard.changeCount != changeCountBefore,
               let copied = pasteboard.string(forType: .string), !copied.isEmpty else {
-            // The copy never landed: nothing selected, or the app refused. Pasteboard still holds `saved`.
+            debugLog("⌘C fallback: copy did not land (change=\(pasteboard.changeCount))") // TEMPORARY DEBUG
             return nil
         }
+        debugLog("⌘C fallback: captured \(copied.count) chars") // TEMPORARY DEBUG
         return copied
     }
 
@@ -50,8 +66,10 @@ public final class TextSelectionService: TextSelectionServicing {
         guard !text.isEmpty else { return false }
         if let element = focusedElement(),
            AXUIElementSetAttributeValue(element, kAXSelectedTextAttribute as CFString, text as CFString) == .success {
+            debugLog("replace: AX write OK") // TEMPORARY DEBUG
             return true
         }
+        debugLog("replace: AX write failed -> ⌘V paste fallback") // TEMPORARY DEBUG
         return pasteViaClipboard(text)
     }
 
@@ -91,13 +109,18 @@ public final class TextSelectionService: TextSelectionServicing {
             return false
         }
         up.post(tap: .cgSessionEventTap)
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            NSPasteboard.general.clearContents()
-            if let saved {
-                NSPasteboard.general.setString(saved, forType: .string)
+        if shouldRestoreClipboard() {
+            debugLog("paste: ⌘V posted, clipboard restore in 200ms") // TEMPORARY DEBUG
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                NSPasteboard.general.clearContents()
+                if let saved {
+                    NSPasteboard.general.setString(saved, forType: .string)
+                }
             }
+        } else {
+            debugLog("paste: ⌘V posted, clipboard left with translated text") // TEMPORARY DEBUG
         }
         return true
     }
 }
+

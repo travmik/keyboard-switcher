@@ -83,7 +83,7 @@ Replacement happens before the switch: the AX write and the ⌘V paste are layou
   1. Save `NSPasteboard.general` string content (empty → nothing to restore)
   2. Copy translated text to pasteboard
   3. Post synthetic keyDown/keyUp ⌘V (`CGEvent`, `kVK_ANSI_V` + cmd flag) to `.cgSessionEventTap`
-  4. After ~200 ms, restore saved string (or clear if there was none)
+  4. Clipboard restore is **off by default** (setting `restoreClipboardAfterFix`, added 2026-09-09): slow-paste apps (ChatGPT's web editor consumes paste asynchronously) read the pasteboard after the 200 ms restore window and pasted the restored pre-paste content, making the fix a no-op. When the setting is on, the saved string is restored ~200 ms after the paste.
 - Known MVP limitation: non-string pasteboard contents (images, files) are not restored; when both the AX read and the AX write fail (pure-clipboard round trip), the intermediate clipboard snapshots make the pre-hotkey clipboard unrestorable in that double-fallback path; documented in code.
 
 ### 3.5 HotkeyManager
@@ -114,7 +114,8 @@ Windows are managed by a small `WindowController` (AppKit) hosting SwiftUI conte
 `AppSettings` (Codable → `UserDefaults`):
 ```swift
 struct AppSettings: Codable {
-    var enabledSourceIDs: [String]   // ordered; the hotkey cycle order
+    var enabledSourceIDs: [String]        // ordered; the hotkey cycle order
+    var restoreClipboardAfterFix: Bool    // default false
 }
 ```
 First launch: all detected keyboard layouts enabled. Removing a layout from the system that is still in settings is tolerated (filtered out at read time). Empty/invalid settings → re-enable all.

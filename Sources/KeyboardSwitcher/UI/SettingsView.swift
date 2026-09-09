@@ -9,6 +9,7 @@ struct SettingsView: View {
 
     @State private var layouts: [InputSourceInfo] = []
     @State private var enabledIDs: Set<String> = []
+    @State private var restoreClipboard = false
     @State private var accessibilityGranted = true
 
     var body: some View {
@@ -34,6 +35,16 @@ struct SettingsView: View {
                     Spacer()
                     Text("⌥⌘K").foregroundStyle(.secondary)
                 }
+            }
+
+            Section {
+                Toggle(isOn: $restoreClipboard) {
+                    Text("Restore clipboard after fix")
+                }
+            } header: {
+                Text("Clipboard")
+            } footer: {
+                Text("Off: the translated text stays on the clipboard after fixing. On: the previous clipboard content is put back after pasting.")
             }
 
             Section("Permissions") {
@@ -74,13 +85,17 @@ struct SettingsView: View {
     private func reload() {
         layouts = inputSource.enabledLayouts()
         let systemIDs = Set(layouts.map(\.id))
-        let saved = store.load().enabledSourceIDs.filter { systemIDs.contains($0) }
-        enabledIDs = saved.isEmpty ? systemIDs : Set(saved)
+        let saved = store.load()
+        let filtered = saved.enabledSourceIDs.filter { systemIDs.contains($0) }
+        enabledIDs = filtered.isEmpty ? systemIDs : Set(filtered)
+        restoreClipboard = saved.restoreClipboardAfterFix
         accessibilityGranted = AXIsProcessTrusted()
     }
 
     private func persist() {
-        let ordered = layouts.filter { enabledIDs.contains($0.id) }.map(\.id)
-        store.save(AppSettings(enabledSourceIDs: ordered))
+        var settings = store.load()
+        settings.enabledSourceIDs = layouts.filter { enabledIDs.contains($0.id) }.map(\.id)
+        settings.restoreClipboardAfterFix = restoreClipboard
+        store.save(settings)
     }
 }

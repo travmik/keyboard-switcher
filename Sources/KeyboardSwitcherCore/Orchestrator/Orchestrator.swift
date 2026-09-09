@@ -19,12 +19,14 @@ public final class Orchestrator {
     }
 
     public func switchAndTranslate() {
+        debugLog("switchAndTranslate enter") // TEMPORARY DEBUG
         guard let currentID = inputSource.currentLayoutID() else {
             logError("could not determine current input source")
             return
         }
 
         let enabled = resolvedEnabledSourceIDs()
+        debugLog("current=\(currentID) enabled=\(enabled.count) \(enabled)") // TEMPORARY DEBUG
         guard enabled.count >= 2 else { return }
 
         // Current layout not in the enabled list → target the first enabled one (spec §3.1).
@@ -38,7 +40,11 @@ public final class Orchestrator {
         // AX read first; apps that don't expose the selection via AX (Electron/Chromium)
         // are read via the clipboard dance (spec §3.4 read fallback).
         guard let text = textSelection.selectedText() ?? textSelection.selectedTextViaClipboard(),
-              !text.isEmpty else { return }
+              !text.isEmpty else {
+            debugLog("no text captured via AX or clipboard") // TEMPORARY DEBUG
+            return
+        }
+        debugLog("captured \(text.count) chars: \(text.prefix(40))") // TEMPORARY DEBUG
         guard let sourceKeymap = keymaps.keymap(forSourceID: currentID),
               let targetKeymap = keymaps.keymap(forSourceID: targetID) else {
             logError("no keymap for \(currentID) or \(targetID)")
@@ -46,10 +52,15 @@ public final class Orchestrator {
         }
 
         let translated = KeymapTranslator.translate(text, source: sourceKeymap, target: targetKeymap)
-        if !textSelection.replaceSelectedText(with: translated) {
+        debugLog("translated -> \(translated.prefix(40))") // TEMPORARY DEBUG
+        let replaced = textSelection.replaceSelectedText(with: translated)
+        debugLog("replace result: \(replaced)") // TEMPORARY DEBUG
+        if !replaced {
             logError("could not replace selection")
         }
-        if !inputSource.selectLayout(id: targetID) {
+        let switched = inputSource.selectLayout(id: targetID)
+        debugLog("switch to \(targetID): \(switched)") // TEMPORARY DEBUG
+        if !switched {
             logError("could not switch input source to \(targetID)")
         }
     }

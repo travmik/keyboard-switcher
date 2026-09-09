@@ -2,9 +2,20 @@ import Foundation
 
 public struct AppSettings: Codable, Equatable {
     public var enabledSourceIDs: [String]
+    /// Whether the ⌘V paste fallback puts the previous clipboard content back after
+    /// pasting. Off by default: the translated text stays on the clipboard (spec §3.4).
+    public var restoreClipboardAfterFix: Bool
 
-    public init(enabledSourceIDs: [String] = []) {
+    public init(enabledSourceIDs: [String] = [], restoreClipboardAfterFix: Bool = false) {
         self.enabledSourceIDs = enabledSourceIDs
+        self.restoreClipboardAfterFix = restoreClipboardAfterFix
+    }
+
+    /// Tolerates settings written before `restoreClipboardAfterFix` existed.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        enabledSourceIDs = try container.decodeIfPresent([String].self, forKey: .enabledSourceIDs) ?? []
+        restoreClipboardAfterFix = try container.decodeIfPresent(Bool.self, forKey: .restoreClipboardAfterFix) ?? false
     }
 }
 
