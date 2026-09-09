@@ -5,6 +5,11 @@ cd "$(dirname "$0")/.."
 swift build -c release
 
 APP="build/KeyboardSwitcher.app"
+# Stable self-signed identity: keeps the macOS Accessibility (TCC) grant valid
+# across rebuilds (ad-hoc signatures change cdhash and break the grant every time).
+# The identity must exist in the login keychain; override with KS_SIGN_IDENTITY="-"
+# for ad-hoc if you don't have it.
+SIGN_IDENTITY="${KS_SIGN_IDENTITY:-keyboard-switcher-dev}"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
 
@@ -28,5 +33,5 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 cp .build/release/KeyboardSwitcher "$APP/Contents/MacOS/KeyboardSwitcher"
-codesign --force --sign - "$APP"
+codesign --force --sign "$SIGN_IDENTITY" "$APP"
 echo "Built $APP"
