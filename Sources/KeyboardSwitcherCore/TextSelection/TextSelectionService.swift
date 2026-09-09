@@ -16,6 +16,36 @@ public final class TextSelectionService: TextSelectionServicing {
         return value as? String
     }
 
+    /// Read fallback for apps that don't expose the selection via AX (Electron/Chromium):
+    /// save clipboard → synthetic ⌘C → poll the pasteboard → return the copied selection (spec §3.4).
+    public func selectedTextViaClipboard() -> String? {
+        let pasteboard = NSPasteboard.general
+        let saved = pasteboard.string(forType: .string)
+        let changeCountBefore = pasteboard.changeCount
+
+        guard let down = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(kVK_ANSI_C), keyDown: true),
+              let up = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(kVK_ANSI_C), keyDown: false) else {
+            return nil
+        }
+        down.flags = .maskCommand
+        down.post(tap: .cgSessionEventTap)
+        up.post(tap: .cgSessionEventTap)
+
+        // Bounded wait for the frontmost app to fulfil the copy (condition polling, not a blind sleep).
+        let timeout: TimeInterval = 0.3
+        var waited: TimeInterval = 0
+        while pasteboard.changeCount == changeCountBefore && waited < timeout {
+            usleep(20_000)
+            waited += 0.02
+        }
+        guard pasteboard.changeCount != changeCountBefore,
+              let copied = pasteboard.string(forType: .string), !copied.isEmpty else {
+            // The copy never landed: nothing selected, or the app refused. Pasteboard still holds `saved`.
+            return nil
+        }
+        return copied
+    }
+
     public func replaceSelectedText(with text: String) -> Bool {
         guard !text.isEmpty else { return false }
         if let element = focusedElement(),

@@ -37,6 +37,7 @@ private final class MockInputSource: InputSourceServicing {
 
 private final class MockTextSelection: TextSelectionServicing {
     var text: String?
+    var clipboardText: String?
     var replaceResult = true
     var replacedWith: String?
     private let recorder: Recorder?
@@ -49,6 +50,11 @@ private final class MockTextSelection: TextSelectionServicing {
     func selectedText() -> String? {
         recorder?.add("selectedText")
         return text
+    }
+
+    func selectedTextViaClipboard() -> String? {
+        recorder?.add("clipboardRead")
+        return clipboardText
     }
 
     func replaceSelectedText(with text: String) -> Bool {
@@ -161,6 +167,36 @@ final class OrchestratorTests: XCTestCase {
     func test_noSelectedText_noOp() {
         let input = MockInputSource(layouts: makeInfo([enID, uaID]), currentID: enID)
         let selection = MockTextSelection(text: nil)
+        let keymaps = MockKeymaps(map: [enID: enKeymap, uaID: uaKeymap])
+        let settings = SettingsStore(defaults: UserDefaults(suiteName: Self.suiteName)!)
+        let orchestrator = Orchestrator(inputSource: input, textSelection: selection, keymaps: keymaps, settings: settings)
+
+        orchestrator.switchAndTranslate()
+
+        XCTAssertNil(selection.replacedWith)
+        XCTAssertNil(input.selectedLayoutID)
+    }
+
+    func test_axReadFailure_fallsBackToClipboardRead() {
+        let recorder = Recorder()
+        let input = MockInputSource(layouts: makeInfo([enID, uaID]), currentID: enID, recorder: recorder)
+        let selection = MockTextSelection(text: nil, recorder: recorder)
+        selection.clipboardText = "ab"
+        let keymaps = MockKeymaps(map: [enID: enKeymap, uaID: uaKeymap])
+        let settings = SettingsStore(defaults: UserDefaults(suiteName: Self.suiteName)!)
+        let orchestrator = Orchestrator(inputSource: input, textSelection: selection, keymaps: keymaps, settings: settings)
+
+        orchestrator.switchAndTranslate()
+
+        XCTAssertEqual(selection.replacedWith, "фи")
+        XCTAssertEqual(input.selectedLayoutID, uaID)
+        XCTAssertEqual(recorder.entries, ["current", "selectedText", "clipboardRead", "replace", "select"])
+    }
+
+    func test_allReadsFail_noOp() {
+        let input = MockInputSource(layouts: makeInfo([enID, uaID]), currentID: enID)
+        let selection = MockTextSelection(text: nil)
+        selection.clipboardText = nil
         let keymaps = MockKeymaps(map: [enID: enKeymap, uaID: uaKeymap])
         let settings = SettingsStore(defaults: UserDefaults(suiteName: Self.suiteName)!)
         let orchestrator = Orchestrator(inputSource: input, textSelection: selection, keymaps: keymaps, settings: settings)

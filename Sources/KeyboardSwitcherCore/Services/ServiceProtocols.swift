@@ -18,6 +18,8 @@ public protocol InputSourceServicing {
 
 public protocol TextSelectionServicing {
     func selectedText() -> String?
+    /// Clipboard-based read for apps that do not expose the selection via AX (spec §3.4 read fallback).
+    func selectedTextViaClipboard() -> String?
     func replaceSelectedText(with text: String) -> Bool
 }
 

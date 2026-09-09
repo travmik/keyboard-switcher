@@ -35,7 +35,10 @@ public final class Orchestrator {
             targetID = enabled[0]
         }
 
-        guard let text = textSelection.selectedText(), !text.isEmpty else { return }
+        // AX read first; apps that don't expose the selection via AX (Electron/Chromium)
+        // are read via the clipboard dance (spec §3.4 read fallback).
+        guard let text = textSelection.selectedText() ?? textSelection.selectedTextViaClipboard(),
+              !text.isEmpty else { return }
         guard let sourceKeymap = keymaps.keymap(forSourceID: currentID),
               let targetKeymap = keymaps.keymap(forSourceID: targetID) else {
             logError("no keymap for \(currentID) or \(targetID)")
