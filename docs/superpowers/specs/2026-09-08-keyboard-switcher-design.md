@@ -77,13 +77,14 @@ Replacement happens before the switch: the AX write and the ⌘V paste are layou
 ### 3.4 TextSelectionService
 
 - Read: `AXUIElementCreateSystemWide` → `kAXFocusedUIElementAttribute` → `kAXSelectedTextAttribute`.
+- **Read fallback** (amended 2026-09-09, post-acceptance bug: Electron/Chromium apps do not expose the selection via AX, so the read returns nil and the hotkey silently no-oped): when the AX read yields nothing, read the selection via the clipboard — save pasteboard string → synthesize ⌘C (`kVK_ANSI_C` + cmd, `.cgSessionEventTap`) → poll `changeCount` for up to ~300 ms → return the copied string. Unchanged `changeCount` (nothing selected, or the app refuses copy) → restore the saved string and return nil.
 - Write: set `kAXSelectedTextAttribute` on the same focused element.
-- Fallback (AX write returns non-`.success`, common in Chrome/Electron):
+- Write fallback (AX write returns non-`.success`):
   1. Save `NSPasteboard.general` string content (empty → nothing to restore)
   2. Copy translated text to pasteboard
-  3. Post synthetic keyDown/keyUp ⌘V (`CGEvent`, `kVK_ANSI_V` + cmd flag) to `.combinedSessionState`
+  3. Post synthetic keyDown/keyUp ⌘V (`CGEvent`, `kVK_ANSI_V` + cmd flag) to `.cgSessionEventTap`
   4. After ~200 ms, restore saved string (or clear if there was none)
-- Known MVP limitation: non-string pasteboard contents (images, files) are not restored; documented in code and README.
+- Known MVP limitation: non-string pasteboard contents (images, files) are not restored; when both the AX read and the AX write fail (pure-clipboard round trip), the intermediate clipboard snapshots make the pre-hotkey clipboard unrestorable in that double-fallback path; documented in code.
 
 ### 3.5 HotkeyManager
 
@@ -127,6 +128,7 @@ First launch: all detected keyboard layouts enabled. Removing a layout from the 
 | AX permission not granted | no-op on hotkey; Settings shows status + deep link |
 | Character not in either keymap | passes through unchanged |
 | AX write fails | clipboard-paste fallback |
+| AX read fails or yields nothing (Electron/Chromium) | clipboard-copy fallback: ⌘C → pasteboard read → translate → replace path as usual |
 | Clipboard fallback while pasteboard holds non-string | replace works; original non-string content not restored (documented) |
 | Layout missing from KeymapProvider cache | extract on demand; extraction failure → no-op with console log |
 | Settings reference a removed system layout | ignored at read time |
