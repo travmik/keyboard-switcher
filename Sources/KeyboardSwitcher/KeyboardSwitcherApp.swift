@@ -1,5 +1,4 @@
 import SwiftUI
-import ApplicationServices
 import KeyboardSwitcherCore
 
 @main
@@ -48,7 +47,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             logError("failed to register hotkey option-command-K")
         }
         hotkeyManager = hotkey
-        debugLog("startup: trusted=\(AXIsProcessTrusted()) installed=\(installed)") // TEMPORARY DEBUG
     }
 
     func showSettings() { menuController.showSettings() }

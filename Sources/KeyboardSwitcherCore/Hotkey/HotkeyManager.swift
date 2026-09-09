@@ -60,7 +60,6 @@ public final class HotkeyManager {
     }
 
     private static let hotkeyCallback: EventHandlerUPP = { _, event, userData in
-        debugLog("hotkey fired") // TEMPORARY DEBUG
         guard let event, let userData else { return noErr }
         var hotKeyID = EventHotKeyID()
         _ = GetEventParameter(
