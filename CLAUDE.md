@@ -40,7 +40,7 @@ The AX API requires the user to grant **Accessibility** permission (System Setti
 
 ## Known app quirks (learned the hard way)
 
-- **WebKit apps (ChatGPT desktop) fake AX writes** — `AXUIElementSetAttributeValue` returns `.success` without applying. Always verify a write by re-reading `kAXSelectedText`.
+- **Never write the selection via AX** — WebKit apps (ChatGPT) fake AX-write success, and Telegram applies AX writes asynchronously *after* our fallback pasted, duplicating the text. The replacement path pastes (single writer); AX is used only for reading.
 - **ChatGPT ignores ALL synthetic input events** — ⌘V at session and HID level, full modifier streams, and unicode-string key events. What works: its menu bar. The replace path for it presses the frontmost app's Edit→Paste menu item via `AXUIElementPerformAction`, matched by `AXMenuItemCmdChar` ("V") + Command-only modifiers, so it survives menu localization.
 - **Synthetic keystrokes posted as bare keyDown/keyUp get dropped by some editors** — post the full physical stream: ⌘ `flagsChanged` down, key down, key up, ⌘ `flagsChanged` up.
 - **Signing**: `scripts/make-app.sh` signs with the self-signed `keyboard-switcher-dev` identity (keychain). Ad-hoc signatures change cdhash every build and invalidate the Accessibility grant — do not go back to `--sign -`.

@@ -2,8 +2,9 @@ import AppKit
 import ApplicationServices
 import Carbon.HIToolbox
 
-/// Reads and replaces the selected text of the focused element via the AX API.
-/// Falls back to a clipboard paste when the app rejects the AX write (spec §3.4).
+/// Reads the selected text of the focused element via the AX API (with a ⌘C
+/// clipboard fallback) and replaces it by pasting. ChatGPT-class apps ignore
+/// synthetic input entirely, so their Paste menu item is pressed via AX (spec §3.4).
 public final class TextSelectionService: TextSelectionServicing {
 
     private let shouldRestoreClipboard: () -> Bool
@@ -56,33 +57,11 @@ public final class TextSelectionService: TextSelectionServicing {
         return copied
     }
 
+    /// Replaces the selection by pasting the given text — a single writer, so the
+    /// text can never be applied twice. ChatGPT-class apps get a menu press instead
+    /// of synthetic ⌘V (spec §3.4).
     public func replaceSelectedText(with text: String) -> Bool {
         guard !text.isEmpty else { return false }
-        if let element = focusedElement(),
-           AXUIElementSetAttributeValue(element, kAXSelectedTextAttribute as CFString, text as CFString) == .success {
-            // WebKit-based apps may report success without applying the write;
-            // verify by re-reading the selection (spec §3.4).
-            if verifyWrite(element: element, expected: text) {
-                return true
-            }
-            return finishReplace(text)
-        }
-        return finishReplace(text)
-    }
-
-    /// Returns false when the selection still holds other text (the write was a no-op).
-    /// A failed/empty re-read means the selection collapsed, i.e. the write applied.
-    private func verifyWrite(element: AXUIElement, expected: String) -> Bool {
-        var value: CFTypeRef?
-        let status = AXUIElementCopyAttributeValue(element, kAXSelectedTextAttribute as CFString, &value)
-        guard status == .success, let current = value as? String else { return true }
-        return current == expected
-    }
-
-    /// The paste fallback for every app. ChatGPT-class apps ignore synthetic ⌘V
-    /// (session- and HID-level, with full modifier streams) and fake-success AX writes,
-    /// so their Paste menu item is pressed via AX instead (spec §3.4).
-    private func finishReplace(_ text: String) -> Bool {
         if isChatGPT {
             return replaceViaMenuPaste(text)
         }
